@@ -1,0 +1,58 @@
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.time.LocalDate;
+import java.util.*;
+
+public class RequestLoader {
+    private File file;
+
+    public RequestLoader(File requestfile) {
+        this.file = requestfile;
+    }
+
+    public List<Neighborhood> load() {
+        Map<String, Neighborhood> neighborhoodMap = new HashMap<>();
+
+        try (Scanner scnr = new Scanner(file)) {
+            String header = scnr.nextLine();
+
+            while (scnr.hasNextLine()) {
+                String dataLine = scnr.nextLine();
+                String[] fields = dataLine.split(",", -1); 
+
+                try {
+                    LocalDate openDate = LocalDate.parse(fields[0]);
+
+                    LocalDate closedDate;
+                    if (fields[1].isEmpty()) {
+                        closedDate = null;
+                    } else {
+                        closedDate = LocalDate.parse(fields[1]);
+                    }
+
+                    boolean closedOnTime = Boolean.parseBoolean(fields[2]);
+                    String reason = fields[3];
+                    String neighborhoodName = fields[4];
+
+                    ServiceRequest request = new ServiceRequest(openDate, closedDate, closedOnTime, reason, neighborhoodName);
+
+                    Neighborhood neighborhood = neighborhoodMap.get(neighborhoodName);
+                    if (neighborhood == null) {
+                        neighborhood = new Neighborhood(neighborhoodName);
+                        neighborhoodMap.put(neighborhoodName, neighborhood);
+                    }
+                    neighborhood.addRequest(request);
+                } catch (Exception e) {
+                    System.err.println("Skipping malformed line: " + dataLine);
+                }
+            }
+
+        } catch (FileNotFoundException e) {
+            System.out.println("File not found: " + file.getPath());
+        }
+
+        return new ArrayList<>(neighborhoodMap.values());
+    }
+}
+
+
